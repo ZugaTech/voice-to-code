@@ -1,4 +1,4 @@
-# Voice-to-Code Assistant
+﻿# Voice-to-Code Assistant
 
 A complete local pipeline turning spoken commands directly into runnable code or bash executions, powered by OpenAI Whisper and GPT-4o.
 
@@ -20,7 +20,7 @@ Drop into the continuous conversational state:
 vtc interact --mode auto
 ```
 
-Speak into your mic. Wait 1.5 seconds of silence, and the system will automatically transcribe, convert, and propose the code to run locally.
+Speak into your mic. Wait 1.5 seconds of silence and the system will automatically transcribe, convert and propose the code to run locally.
 
 ### 2. View History
 ```bash
