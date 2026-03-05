@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice to Code UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 h-screen flex flex-col items-center justify-center">
+
+    <div class="w-full max-w-2xl bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <h1 class="text-2xl font-bold mb-6 text-center">Voice to Code Assistant</h1>
+
+        <div class="flex justify-center mb-6">
+            <button id="recordBtn"
+                class="bg-red-500 hover:bg-red-600 text-white rounded-full w-24 h-24 flex items-center justify-center font-bold text-lg shadow-md transition-all">
+                Record
+            </button>
+        </div>
+
+        <div id="status" class="text-center text-sm font-semibold text-gray-500 mb-6 h-6">
+            Ready to record. Click the button.
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Transcription</label>
+                <div id="transcriptionBox"
+                    class="w-full min-h-[60px] p-3 bg-gray-100 rounded text-sm text-gray-800 border border-gray-200">
+                    Waiting for input...
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide">Generated Code</label>
+                <pre id="codeBox"
+                    class="w-full min-h-[120px] p-3 bg-gray-900 text-green-400 rounded text-sm font-mono overflow-auto border border-gray-800">No code generated yet.</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const recordBtn = document.getElementById('recordBtn');
+        const statusText = document.getElementById('status');
+        const transcriptionBox = document.getElementById('transcriptionBox');
+        const codeBox = document.getElementById('codeBox');
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+
+        recordBtn.addEventListener('click', async () => {
+            if (isRecording) {
+                mediaRecorder.stop();
+                recordBtn.innerText = "Record";
+                recordBtn.classList.replace("bg-gray-400", "bg-red-500");
+                isRecording = false;
+                statusText.innerText = "Processing audio...";
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.addEventListener('dataavailable', event => {
+                    audioChunks.push(event.data);
+                });
+
+                mediaRecorder.addEventListener('stop', async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+                    // Convert blob to base64
+                    const reader = new FileReader();
+                    reader.readAsDataURL(audioBlob);
+                    reader.onloadend = async () => {
+                        const base64data = reader.result.split(',')[1];
+
+                        try {
+                            statusText.innerText = "Sending to server...";
+                            const response = await fetch('/api/transcribe-convert', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ audio_base64: base64data })
+                            });
+
+                            const data = await response.json();
+
+                            if (data.status === "success") {
+                                statusText.innerText = `Success (${data.mode})`;
+                                transcriptionBox.innerText = data.transcription;
+                                codeBox.innerText = data.code;
+                            } else {
+                                statusText.innerText = "Error processing audio.";
+                                codeBox.innerText = data.error || "Unknown error";
+                            }
+                        } catch (err) {
+                            console.error(err);
+                            statusText.innerText = "Network error.";
+                        }
+                    };
+                });
+
+                mediaRecorder.start();
+                recordBtn.innerText = "Stop";
+                recordBtn.classList.replace("bg-red-500", "bg-gray-400");
+                isRecording = true;
+                statusText.innerText = "Listening...";
+
+            } catch (err) {
+                console.error("Mic access denied", err);
+                statusText.innerText = "Microphone access denied.";
+            }
+        });
+    </script>
+</body>
+
+</html>
