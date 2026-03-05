@@ -7,8 +7,8 @@ Featuring a rich terminal user interface and an optional Web UI.
 ## Installation
 
 ```bash
-pip install -e .
-cp .env.example .env
+pip install -e.
+cp.env.example.env
 ```
 Ensure you have PyAudio or `sounddevice` C libraries installed on your host if on Linux (`sudo apt-get install libportaudio2`).
 
